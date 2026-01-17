@@ -17,7 +17,7 @@ cd "/run/media/umayangaathapaththu/Degree/AI course/final-assignment/backend"
 # - PINECONE_INDEX_NAME=your-index-name (indexed with Sri Lankan Constitution)
 
 # Start the backend server
-uv run uvicorn src.app.api:app --reload --port 8000
+uv run uvicorn src.app.api:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The backend will be available at `http://localhost:8000`
