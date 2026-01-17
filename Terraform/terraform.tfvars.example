@@ -1,0 +1,33 @@
+# Terraform Variables Configuration
+# AWS Deployment for RAG Chat Application
+
+# AWS Configuration
+aws_region   = "us-east-1"
+environment  = "prod"
+project_name = "rag-chat-app"
+
+# VPC Configuration
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# Backend Configuration
+backend_cpu            = 1024
+backend_memory         = 2048
+backend_container_port = 8000
+backend_desired_count  = 2
+
+# API Keys (from backend/.env)
+openai_api_key   = "sk-..."
+pinecone_api_key = "pcsk_..."
+
+# Pinecone Configuration
+pinecone_environment = "us-east-1-aws"
+pinecone_index_name  = "law"
+
+# Domain Configuration (Optional) - Not configured
+# domain_name     = ""
+# certificate_arn = ""
+
+# Monitoring
+enable_monitoring  = true
+log_retention_days = 7
