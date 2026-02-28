@@ -41,5 +41,3 @@ pnpm-debug.log*
 *.local
 tfplan
 
-# Nested repo backups (used during git fix)
-.git_bak/
