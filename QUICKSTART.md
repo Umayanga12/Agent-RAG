@@ -139,3 +139,10 @@ The application uses a sophisticated multi-agent system:
 
 All prompts are specialized for Sri Lankan constitutional law with emphasis on accuracy and proper article citations.
 
+
+### AWS Deployment
+
+The application is deployed to AWS ECS and is accessible at:
+[http://rag-chat-app-alb-2146189969.us-east-1.elb.amazonaws.com](http://rag-chat-app-alb-2146189969.us-east-1.elb.amazonaws.com)
+
+- **API Docs**: [http://rag-chat-app-alb-2146189969.us-east-1.elb.amazonaws.com/docs](http://rag-chat-app-alb-2146189969.us-east-1.elb.amazonaws.com/docs)
