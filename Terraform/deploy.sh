@@ -1,119 +1,104 @@
 #!/bin/bash
 
-# Deployment script for RAG Chat Application to AWS
-# This script automates the deployment process
+# deploy.sh — Build, push Docker images and update ECS services.
+# Run AFTER `make deploy` has provisioned the AWS infrastructure via Terraform.
+# Usage: cd Terraform && bash deploy.sh
 
 set -e
 
-echo "🚀 RAG Chat Application - AWS Deployment Script"
-echo "================================================"
+echo "🚀 Agent RAG — Docker Build & ECS Deploy"
+echo "=========================================="
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Check prerequisites
+# ── Prerequisites ──────────────────────────────────────────────────────────────
+
 echo -e "\n${YELLOW}Checking prerequisites...${NC}"
+command -v aws    >/dev/null 2>&1 || { echo -e "${RED}✗ aws CLI not installed${NC}"; exit 1; }
+command -v docker >/dev/null 2>&1 || { echo -e "${RED}✗ docker not installed${NC}"; exit 1; }
+command -v terraform >/dev/null 2>&1 || { echo -e "${RED}✗ terraform not installed${NC}"; exit 1; }
 
-command -v terraform >/dev/null 2>&1 || { echo -e "${RED}Error: terraform is not installed${NC}"; exit 1; }
-command -v aws >/dev/null 2>&1 || { echo -e "${RED}Error: aws CLI is not installed${NC}"; exit 1; }
-command -v docker >/dev/null 2>&1 || { echo -e "${RED}Error: docker is not installed${NC}"; exit 1; }
-
-echo -e "${GREEN}✓ All prerequisites met${NC}"
-
-# Check if terraform.tfvars exists
 if [ ! -f "terraform.tfvars" ]; then
-    echo -e "${RED}Error: terraform.tfvars not found${NC}"
-    echo "Please copy terraform.tfvars.example to terraform.tfvars and fill in your values"
-    exit 1
+  echo -e "${RED}✗ terraform.tfvars not found.${NC}"
+  echo "  Copy Terraform/terraform.tfvars.example → Terraform/terraform.tfvars and fill in values."
+  exit 1
 fi
 
-# Initialize Terraform
-echo -e "\n${YELLOW}Initializing Terraform...${NC}"
-terraform init
+if ! terraform output ecs_cluster_name >/dev/null 2>&1; then
+  echo -e "${RED}✗ Terraform outputs not available.${NC}"
+  echo "  Run 'make deploy' first to provision AWS infrastructure."
+  exit 1
+fi
 
-# Create infrastructure
-echo -e "\n${YELLOW}Creating AWS infrastructure...${NC}"
-echo "This will take approximately 10-15 minutes"
-terraform apply
+echo -e "${GREEN}✓ Prerequisites met${NC}"
 
-# Get outputs
-echo -e "\n${YELLOW}Retrieving infrastructure details...${NC}"
+# ── Read Terraform outputs ─────────────────────────────────────────────────────
+
+echo -e "\n${YELLOW}Reading infrastructure details from Terraform...${NC}"
 ECR_BACKEND=$(terraform output -raw ecr_backend_repository_url)
 ECR_FRONTEND=$(terraform output -raw ecr_frontend_repository_url)
-ECR_REGISTRY=$(echo $ECR_BACKEND | cut -d'/' -f1)
+ECR_REGISTRY=$(echo "$ECR_BACKEND" | cut -d'/' -f1)
 ALB_DNS=$(terraform output -raw alb_dns_name)
-AWS_REGION=$(terraform output -raw aws_region || echo "us-east-1")
-
-echo -e "${GREEN}✓ Infrastructure created${NC}"
-echo "  Backend ECR: $ECR_BACKEND"
-echo "  Frontend ECR: $ECR_FRONTEND"
-echo "  ALB DNS: $ALB_DNS"
-
-# Login to ECR
-echo -e "\n${YELLOW}Logging into ECR...${NC}"
-aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-echo -e "${GREEN}✓ Logged into ECR${NC}"
-
-# Build and push backend
-echo -e "\n${YELLOW}Building backend Docker image...${NC}"
-cd ../backend
-docker build -t $ECR_BACKEND:latest .
-echo -e "${GREEN}✓ Backend image built${NC}"
-
-echo -e "\n${YELLOW}Pushing backend image to ECR...${NC}"
-docker push $ECR_BACKEND:latest
-echo -e "${GREEN}✓ Backend image pushed${NC}"
-
-# Build and push frontend
-echo -e "\n${YELLOW}Building frontend Docker image...${NC}"
-cd ../frontend
-docker build --build-arg VITE_API_URL=http://${ALB_DNS} -t $ECR_FRONTEND:latest .
-echo -e "${GREEN}✓ Frontend image built${NC}"
-
-echo -e "\n${YELLOW}Pushing frontend image to ECR...${NC}"
-docker push $ECR_FRONTEND:latest
-echo -e "${GREEN}✓ Frontend image pushed${NC}"
-
-# Update ECS services
-cd ../Terraform
+AWS_REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
 CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
 BACKEND_SERVICE=$(terraform output -raw backend_service_name)
 FRONTEND_SERVICE=$(terraform output -raw frontend_service_name)
 
-echo -e "\n${YELLOW}Deploying backend service...${NC}"
+echo -e "  Backend ECR:  $ECR_BACKEND"
+echo -e "  Frontend ECR: $ECR_FRONTEND"
+echo -e "  ALB DNS:      $ALB_DNS"
+
+# ── ECR Login ─────────────────────────────────────────────────────────────────
+
+echo -e "\n${YELLOW}Logging into ECR...${NC}"
+aws ecr get-login-password --region "$AWS_REGION" \
+  | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+echo -e "${GREEN}✓ Logged into ECR${NC}"
+
+# ── Build & push backend ───────────────────────────────────────────────────────
+
+echo -e "\n${YELLOW}Building backend image...${NC}"
+docker build -t "$ECR_BACKEND:latest" ../backend
+docker push "$ECR_BACKEND:latest"
+echo -e "${GREEN}✓ Backend image pushed${NC}"
+
+# ── Build & push frontend ──────────────────────────────────────────────────────
+
+echo -e "\n${YELLOW}Building frontend image...${NC}"
+docker build \
+  --build-arg "VITE_API_URL=http://${ALB_DNS}" \
+  -t "$ECR_FRONTEND:latest" \
+  ../frontend
+docker push "$ECR_FRONTEND:latest"
+echo -e "${GREEN}✓ Frontend image pushed${NC}"
+
+# ── Force new ECS deployments ──────────────────────────────────────────────────
+
+echo -e "\n${YELLOW}Triggering ECS deployments...${NC}"
 aws ecs update-service \
-  --cluster $CLUSTER_NAME \
-  --service $BACKEND_SERVICE \
-  --force-new-deployment \
-  --region $AWS_REGION \
-  --no-cli-pager
-echo -e "${GREEN}✓ Backend service deployment initiated${NC}"
-
-echo -e "\n${YELLOW}Deploying frontend service...${NC}"
+  --cluster "$CLUSTER_NAME" --service "$BACKEND_SERVICE" \
+  --force-new-deployment --region "$AWS_REGION" --no-cli-pager >/dev/null
 aws ecs update-service \
-  --cluster $CLUSTER_NAME \
-  --service $FRONTEND_SERVICE \
-  --force-new-deployment \
-  --region $AWS_REGION \
-  --no-cli-pager
-echo -e "${GREEN}✓ Frontend service deployment initiated${NC}"
+  --cluster "$CLUSTER_NAME" --service "$FRONTEND_SERVICE" \
+  --force-new-deployment --region "$AWS_REGION" --no-cli-pager >/dev/null
 
-# Wait for services to stabilize
-echo -e "\n${YELLOW}Waiting for services to become healthy (this may take 2-3 minutes)...${NC}"
-aws ecs wait services-stable --cluster $CLUSTER_NAME --services $BACKEND_SERVICE --region $AWS_REGION
-aws ecs wait services-stable --cluster $CLUSTER_NAME --services $FRONTEND_SERVICE --region $AWS_REGION
+echo -e "\n${YELLOW}Waiting for services to stabilise (≈2-3 min)...${NC}"
+aws ecs wait services-stable \
+  --cluster "$CLUSTER_NAME" \
+  --services "$BACKEND_SERVICE" "$FRONTEND_SERVICE" \
+  --region "$AWS_REGION"
 
+# ── Done ───────────────────────────────────────────────────────────────────────
+
+APP_URL=$(terraform output -raw application_url)
 echo -e "\n${GREEN}========================================${NC}"
-echo -e "${GREEN}🎉 Deployment completed successfully!${NC}"
+echo -e "${GREEN}🎉 Deployment successful!${NC}"
 echo -e "${GREEN}========================================${NC}"
-echo -e "\nYour application is now accessible at:"
-echo -e "${GREEN}$(terraform output -raw application_url)${NC}"
-echo -e "\n${YELLOW}Share this URL with anyone you want to give access.${NC}"
-echo -e "\nAPI Documentation: ${GREEN}http://${ALB_DNS}/docs${NC}"
-echo -e "\nTo view logs:"
-echo -e "  Backend:  aws logs tail $(terraform output -raw cloudwatch_log_group_backend) --follow"
-echo -e "  Frontend: aws logs tail $(terraform output -raw cloudwatch_log_group_frontend) --follow"
-echo -e "\n${YELLOW}Note: The application URL is unlisted - only people with the link can access it.${NC}"
+echo -e "\n  App:  ${GREEN}${APP_URL}${NC}"
+echo -e "  API docs: ${GREEN}http://${ALB_DNS}/docs${NC}"
+echo -e "\n  Logs:"
+echo -e "    Backend:  aws logs tail $(terraform output -raw cloudwatch_log_group_backend) --follow"
+echo -e "    Frontend: aws logs tail $(terraform output -raw cloudwatch_log_group_frontend) --follow"
