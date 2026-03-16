@@ -72,6 +72,7 @@ gcloud run deploy "$BACKEND_SERVICE" \
   --image "$BACKEND_IMAGE" \
   --region "$REGION" \
   --project "$PROJECT_ID" \
+  --port 8080 \
   --quiet
 
 BACKEND_URL=$(gcloud run services describe "$BACKEND_SERVICE" --region "$REGION" --project "$PROJECT_ID" --format 'value(status.url)')

@@ -9,11 +9,12 @@ environment    = "prod"
 project_name   = "rag-chat-app"
 
 # Backend Configuration
-backend_container_port = 8000
+backend_container_port = 8080
 
 # API Keys (from backend/.env)
 openai_api_key   = "sk-..."
 pinecone_api_key = "pcsk_..."
+gemini_api_key   = "AIzaSy..."
 
 # Pinecone Configuration
 pinecone_environment = "us-east-1-aws"

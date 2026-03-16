@@ -41,3 +41,22 @@ resource "google_secret_manager_secret_version" "pinecone_api_key" {
   secret = google_secret_manager_secret.pinecone_api_key.id
   secret_data = var.pinecone_api_key
 }
+
+# Gemini API Key
+resource "google_secret_manager_secret" "gemini_api_key" {
+  secret_id = "${var.project_name}-gemini-api-key"
+  replication {
+    auto {}
+  }
+
+  labels = {
+    environment = var.environment
+  }
+
+  depends_on = [google_project_service.secretmanager]
+}
+
+resource "google_secret_manager_secret_version" "gemini_api_key" {
+  secret = google_secret_manager_secret.gemini_api_key.id
+  secret_data = var.gemini_api_key
+}

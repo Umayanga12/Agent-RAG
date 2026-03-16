@@ -53,11 +53,11 @@ EXPOSE 8000
 # Environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
+    PORT=8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8000/docs || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/docs || exit 1
 
 # Run the application
 CMD uvicorn src.app.api:app --host 0.0.0.0 --port ${PORT}

@@ -37,6 +37,8 @@ resource "google_cloud_run_v2_service" "backend" {
       }
       
 
+
+
       env {
         name  = "PINECONE_ENVIRONMENT"
         value = var.pinecone_environment
@@ -72,6 +74,15 @@ resource "google_cloud_run_v2_service" "backend" {
           }
         }
       }
+      env {
+        name = "GEMINI_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.gemini_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
     }
   }
 
@@ -85,7 +96,8 @@ resource "google_cloud_run_v2_service" "backend" {
     google_project_service.run,
     google_project_iam_member.secret_accessor,
     google_secret_manager_secret_version.openai_api_key,
-    google_secret_manager_secret_version.pinecone_api_key
+    google_secret_manager_secret_version.pinecone_api_key,
+    google_secret_manager_secret_version.gemini_api_key
   ]
 }
 

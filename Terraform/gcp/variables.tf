@@ -25,7 +25,7 @@ variable "project_name" {
 variable "backend_container_port" {
   description = "Port on which backend container listens"
   type        = number
-  default     = 8000
+  default     = 8080
 }
 
 # API Keys
@@ -37,6 +37,12 @@ variable "openai_api_key" {
 
 variable "pinecone_api_key" {
   description = "Pinecone API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "gemini_api_key" {
+  description = "Gemini API key"
   type        = string
   sensitive   = true
 }
