@@ -28,7 +28,7 @@ Responses are streamed to the browser in real time using **Server-Sent Events (S
 - 🌐 **REST + SSE API** — Clean FastAPI backend with Swagger/OpenAPI docs
 - 🎨 **Modern React UI** — Built with Vite, Tailwind CSS, and shadcn/ui components
 - 🐳 **Docker Compose** — One-command local deployment
-- ☁️ **AWS-ready** — Terraform configuration for ECS Fargate deployment
+- ☁️ **Multi-Cloud Ready** — Terraform configuration for AWS (ECS) and GCP (Cloud Run)
 
 ---
 
@@ -291,33 +291,50 @@ Try these in the chat UI:
 
 ---
 
-## ☁️ AWS Deployment
+## ☁️ Cloud Deployment (AWS & GCP)
 
-The application includes Terraform configuration for deploying to **AWS ECS Fargate**.
+The application includes Terraform configuration for deploying to **AWS ECS Fargate** or **GCP Cloud Run**.
 
 ### Setup
 
-1. Copy the Terraform variables template:
+1. Choose your provider and copy the appropriate Terraform variables template:
    ```bash
-   cp Terraform/terraform.tfvars.example Terraform/terraform.tfvars
+   # For AWS:
+   cp Terraform/aws/terraform.tfvars.example Terraform/aws/terraform.tfvars
+   
+   # For GCP:
+   cp Terraform/gcp/terraform.tfvars.example Terraform/gcp/terraform.tfvars
    ```
-2. Fill in your AWS credentials and configuration values.
+2. Fill in your cloud credentials and API keys in the generated `terraform.tfvars` file.
 
 ### Deploy
+
+Start the interactive deployment script from the project root:
 
 ```bash
 make deploy
 ```
 
-This will run `terraform init`, `terraform plan`, and prompt for confirmation before applying.
+You will be prompted to select either AWS or GCP. The script will run `terraform init`, `terraform plan`, ask for confirmation to apply, and then build and push the Docker containers to your selected cloud registry.
+
+Alternatively, you can skip the prompt and deploy a specific provider directly:
+```bash
+make deploy-aws
+# or
+make deploy-gcp
+```
 
 ### Destroy
 
+To tear down the infrastructure and stop incurring costs:
+
 ```bash
-make destroy
+make destroy-aws
+# or
+make destroy-gcp
 ```
 
-> ⚠️ This permanently deletes all AWS resources.
+> ⚠️ This permanently deletes all provisioned cloud resources for that provider.
 
 ---
 

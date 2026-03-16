@@ -33,18 +33,42 @@ dev-down: ## Stop and remove local containers
 dev-logs: ## Follow logs from all containers
 	docker compose logs -f
 
-# ── AWS Deployment ─────────────────────────────────────────────────────────────
+# ── Cloud Deployment ─────────────────────────────────────────────────────────────
 
-deploy: ## Plan then apply Terraform to deploy on AWS ECS
-	@echo "→ Running Terraform deployment..."
-	@[ -f Terraform/terraform.tfvars ] || { echo "✗ Missing Terraform/terraform.tfvars — copy from terraform.tfvars.example"; exit 1; }
-	cd Terraform && terraform init
-	cd Terraform && terraform plan -out=tfplan
+deploy: ## Interactive deployment (choose AWS or GCP)
+	@bash deploy.sh
+
+deploy-aws: ## Plan, apply, and deploy on AWS ECS
+	@echo "→ Running AWS Terraform deployment..."
+	@[ -f Terraform/aws/terraform.tfvars ] || { echo "✗ Missing Terraform/aws/terraform.tfvars — copy from terraform.tfvars.example"; exit 1; }
+	cd Terraform/aws && terraform init
+	cd Terraform/aws && terraform plan -out=tfplan
 	@echo ""
-	@read -p "  Apply the above plan? (yes/no): " confirm; \
-	[ "$$confirm" = "yes" ] && cd Terraform && terraform apply tfplan || echo "  Cancelled."
-	cd Terraform && bash deploy.sh
+	@read -p "  Apply the above AWS plan? (yes/no): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		cd Terraform/aws && terraform apply tfplan && bash deploy.sh; \
+	else \
+		echo "  Cancelled."; \
+	fi
 
-destroy: ## Destroy all AWS infrastructure (irreversible!)
+destroy-aws: ## Destroy AWS infrastructure
 	@read -p "  Destroy ALL AWS resources? (yes/no): " confirm; \
-	[ "$$confirm" = "yes" ] && cd Terraform && terraform destroy || echo "  Cancelled."
+	[ "$$confirm" = "yes" ] && cd Terraform/aws && terraform destroy || echo "  Cancelled."
+
+deploy-gcp: ## Plan, apply, and deploy on GCP Cloud Run
+	@echo "→ Running GCP Terraform deployment..."
+	@[ -f Terraform/gcp/terraform.tfvars ] || { echo "✗ Missing Terraform/gcp/terraform.tfvars — copy from terraform.tfvars.example"; exit 1; }
+	cd Terraform/gcp && terraform init
+	cd Terraform/gcp && terraform plan -out=tfplan
+	@echo ""
+	@read -p "  Apply the above GCP plan? (yes/no): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		cd Terraform/gcp && terraform apply tfplan && bash deploy.sh; \
+	else \
+		echo "  Cancelled."; \
+	fi
+
+destroy-gcp: ## Destroy GCP infrastructure
+	@read -p "  Destroy ALL GCP resources? (yes/no): " confirm; \
+	[ "$$confirm" = "yes" ] && cd Terraform/gcp && terraform destroy || echo "  Cancelled."
+

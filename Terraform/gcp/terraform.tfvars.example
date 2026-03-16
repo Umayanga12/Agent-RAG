@@ -1,0 +1,20 @@
+# Terraform Variables Configuration
+# GCP Deployment for RAG Chat Application
+
+# GCP Configuration
+gcp_project_id = "your-gcp-project-id"
+gcp_region     = "us-central1"
+
+environment    = "prod"
+project_name   = "rag-chat-app"
+
+# Backend Configuration
+backend_container_port = 8000
+
+# API Keys (from backend/.env)
+openai_api_key   = "sk-..."
+pinecone_api_key = "pcsk_..."
+
+# Pinecone Configuration
+pinecone_environment = "us-east-1-aws"
+pinecone_index_name  = "law"

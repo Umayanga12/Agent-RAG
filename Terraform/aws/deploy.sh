@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # deploy.sh — Build, push Docker images and update ECS services.
-# Run AFTER `make deploy` has provisioned the AWS infrastructure via Terraform.
-# Usage: cd Terraform && bash deploy.sh
+# Run AFTER `make deploy-aws` has provisioned the AWS infrastructure via Terraform.
+# Usage: cd Terraform/aws && bash deploy.sh
 
 set -e
 
@@ -27,7 +27,7 @@ if [ ! -f "terraform.tfvars" ]; then
   exit 1
 fi
 
-if ! terraform output ecs_cluster_name >/dev/null 2>&1; then
+if [ "$(terraform output -json)" = "{}" ]; then
   echo -e "${RED}✗ Terraform outputs not available.${NC}"
   echo "  Run 'make deploy' first to provision AWS infrastructure."
   exit 1
@@ -38,14 +38,14 @@ echo -e "${GREEN}✓ Prerequisites met${NC}"
 # ── Read Terraform outputs ─────────────────────────────────────────────────────
 
 echo -e "\n${YELLOW}Reading infrastructure details from Terraform...${NC}"
-ECR_BACKEND=$(terraform output -raw ecr_backend_repository_url)
-ECR_FRONTEND=$(terraform output -raw ecr_frontend_repository_url)
+ECR_BACKEND=$(terraform output -raw ecr_backend_repository_url 2>/dev/null)
+ECR_FRONTEND=$(terraform output -raw ecr_frontend_repository_url 2>/dev/null)
 ECR_REGISTRY=$(echo "$ECR_BACKEND" | cut -d'/' -f1)
-ALB_DNS=$(terraform output -raw alb_dns_name)
+ALB_DNS=$(terraform output -raw alb_dns_name 2>/dev/null)
 AWS_REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
-CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
-BACKEND_SERVICE=$(terraform output -raw backend_service_name)
-FRONTEND_SERVICE=$(terraform output -raw frontend_service_name)
+CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null)
+BACKEND_SERVICE=$(terraform output -raw backend_service_name 2>/dev/null)
+FRONTEND_SERVICE=$(terraform output -raw frontend_service_name 2>/dev/null)
 
 echo -e "  Backend ECR:  $ECR_BACKEND"
 echo -e "  Frontend ECR: $ECR_FRONTEND"
@@ -61,7 +61,7 @@ echo -e "${GREEN}✓ Logged into ECR${NC}"
 # ── Build & push backend ───────────────────────────────────────────────────────
 
 echo -e "\n${YELLOW}Building backend image...${NC}"
-docker build -t "$ECR_BACKEND:latest" ../backend
+docker build -t "$ECR_BACKEND:latest" ../../backend
 docker push "$ECR_BACKEND:latest"
 echo -e "${GREEN}✓ Backend image pushed${NC}"
 
@@ -71,7 +71,7 @@ echo -e "\n${YELLOW}Building frontend image...${NC}"
 docker build \
   --build-arg "VITE_API_URL=http://${ALB_DNS}" \
   -t "$ECR_FRONTEND:latest" \
-  ../frontend
+  ../../frontend
 docker push "$ECR_FRONTEND:latest"
 echo -e "${GREEN}✓ Frontend image pushed${NC}"
 
