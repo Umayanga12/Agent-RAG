@@ -21,10 +21,26 @@ from .tools import retrieval_tool
 
 
 def _extract_last_ai_content(messages: List[object]) -> str:
-    """Extract the content of the last AIMessage in a messages list."""
+    """Extract the content of the last AIMessage in a messages list.
+    
+    Handles both:
+    - str content (most LLMs)
+    - list content blocks (Gemini multi-part responses like [{'type':'text','text':'...','extras':{...}}])
+    """
     for msg in reversed(messages):
         if isinstance(msg, AIMessage):
-            return str(msg.content)
+            content = msg.content
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                # Extract only the text parts, ignoring 'extras' (e.g. Gemini signature blobs)
+                parts = [
+                    block.get("text", "")
+                    for block in content
+                    if isinstance(block, dict) and block.get("type") == "text"
+                ]
+                return "".join(parts)
+            return str(content)
     return ""
 
 

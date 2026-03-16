@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import Lottie from "lottie-react";
+import ReactMarkdown from "react-markdown";
 import animationData from "../assets/animation.json";
 import animationData1 from "../assets/Ghostsmart.json";
 import { AgentProgress, AgentStage } from "../components/AgentProgress";
@@ -193,15 +194,19 @@ const AgentChat: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-2xl px-4 py-3 ${
+                    className={`max-w-[75%] rounded-2xl px-4 py-3 ${
                       message.role === "user"
                         ? "bg-teal-600 text-white"
                         : "bg-white border border-gray-200 text-gray-800"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">
-                      {message.content}
-                    </p>
+                    {message.role === "user" ? (
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    ) : (
+                      <div className="text-sm prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-800 prose-h3:text-base prose-h3:mt-4 prose-h3:mb-1 prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-strong:text-gray-900 prose-a:text-teal-600">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {isLoading &&

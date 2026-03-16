@@ -1,7 +1,7 @@
 """Configuration management for the multi-agent RAG system.
 
 This module uses Pydantic Settings to load and validate environment variables
-for OpenAI models, Pinecone settings, and other system parameters.
+for Gemini models, Pinecone settings, and other system parameters.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -10,10 +10,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    # OpenAI Configuration
-    openai_api_key: str
-    openai_model_name: str = "gpt-4o-mini"
-    openai_embedding_model_name: str = "text-embedding-3-large"
+    # Gemini Configuration
+    gemini_api_key: str
+    gemini_model_name: str = "gemini-3-flash-preview"
+    gemini_embedding_model_name: str = "gemini-embedding-001"
 
     # Pinecone Configuration
     pinecone_api_key: str
